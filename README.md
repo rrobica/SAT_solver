@@ -1,10 +1,11 @@
 # SAT_solver
-This project is an impementation of the three algorithms that uses clauses and determine their satisfiability: Resolution, DP and DPLL. There are three type of algorithms implemented.  
+💻This project implements three algorithms to determine the satisfiability of clauses: Resolution, DP (Davis-Putnam), and DPLL (Davis-Putnam-Logemann-Loveland). These algorithms analyze randomly generated clauses to determine if they are satisfiable (SAT).  
 
-The file named "resolution.py" chooses the best algorithm (Resolution, DP or DPLL) to determine SAT of the randomly generated clauses.  
+📄 Files Overview
+- resolution.py: Selects the best algorithm (Resolution, DP, or DPLL) to determine the SAT of the randomly generated clauses.  
 
-The file named "Code with comparison working.py" works and compares the results giving you details about the algoritm used, the result it got, and the time needed.  
+- Code with comparison working.py: Compares the results obtained by each algorithm, providing details about the algorithm used, the result achieved, and the time taken.  
 
-The other files are drafts and they don't work.  
+- Draft Files: These files are drafts and do not work.  
 
-Thanks for help (https://github.com/CsizmaAle).
+🙏Thanks for help (https://github.com/CsizmaAle).

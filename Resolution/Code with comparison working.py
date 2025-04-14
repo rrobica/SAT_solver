@@ -207,8 +207,8 @@ def save_results_to_file(filename, formulas):
 # --- Main Function ---
 
 def main():
-    num_formulas = 10    # Number of CNF formulas to generate.
-    num_clauses = 20     # Number of clauses per formula.
+    num_formulas = 200    # Number of CNF formulas to generate.
+    num_clauses = 200     # Number of clauses per formula.
     num_literals = 10    # Variables are in the range [1, num_literals].
     unsat_prob = 0.3     # Probability to inject contradictory unit clauses.
 

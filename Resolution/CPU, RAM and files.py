@@ -5,8 +5,6 @@ import sys
 import psutil
 import os
 import gc
-import csv
-import tracemalloc  # Modul pentru măsurarea detaliată a memoriei
 import random
 
 # --- SAT Solvers ---
@@ -50,17 +48,11 @@ def resolution_algorithm(clauses, max_iterations=3, max_clauses=5000):
 
 def davis_putnam(clauses):
     while clauses:
-        # Dacă există o clauză vidă, formula este nesatisfiabilă.
         if any(c == [] for c in clauses):
             return False
-
-        # Construim mulțimea tuturor literalelor din formulă.
         literals = {l for clause in clauses for l in clause}
-        # Dacă nu mai sunt litere, formula este satisfiabilă.
         if not literals:
             return True
-        
-        # Eliminare de literale pure.
         pure_literal_found = False
         for l in literals:
             if -l not in literals:
@@ -70,54 +62,41 @@ def davis_putnam(clauses):
         if pure_literal_found:
             if not clauses:
                 return True
-            continue  # Reîncepem ciclul cu clauzele actualizate
-
-        # Propagare de clauze unitare.
+            continue
         unit_clauses = [c[0] for c in clauses if len(c) == 1]
         if unit_clauses:
             for u in unit_clauses:
                 clauses = [list(filter(lambda x: x != -u, c)) for c in clauses if u not in c]
             if not clauses:
                 return True
-            continue  # Reîncepem ciclul
-
-        # Înainte de branching, verificăm dacă mai sunt litere.
+            continue
         if not literals:
             return True
-        
-        # Alegem o variabilă pentru branching.
         var = abs(next(iter(literals)))
         left = davis_putnam([[v for v in c if v != -var] for c in clauses if var not in c])
         right = davis_putnam([[v for v in c if v != var] for c in clauses if -var not in c])
         return left or right
-
     return False
 
 def dpll(clauses, assignment={}, deadline=None):
     if deadline is not None and time.time() > deadline:
         raise TimeoutError("Timpul alocat DPLL a expirat")
-    if not clauses:  # Toate clauzele sunt satisfăcute.
+    if not clauses:
         return True, assignment
-    if [] in clauses:  # S-a găsit o clauză vidă.
+    if [] in clauses:
         return False, {}
-    
     literals = {l for clause in clauses for l in clause}
     if not literals:
         return True, assignment
-    
-    # Eliminare de literale pure.
     for l in literals:
         if -l not in literals:
             new_clauses = [c for c in clauses if l not in c]
             return dpll(new_clauses, {**assignment, l: True}, deadline=deadline)
-
-    # Propagare de unitate.
     unit_clauses = [c[0] for c in clauses if len(c) == 1]
     if unit_clauses:
         u = unit_clauses[0]
         new_clauses = [list(filter(lambda x: x != -u, c)) for c in clauses if u not in c]
         return dpll(new_clauses, {**assignment, u: True}, deadline=deadline)
-
     var = abs(next(iter(literals)))
     sat_true, assgn_true = dpll([[v for v in c if v != -var] for c in clauses if var not in c],
                                  {**assignment, var: True}, deadline=deadline)
@@ -173,11 +152,11 @@ def read_formula_from_file(filename):
         for line in f:
             line = line.strip()
             if not line:
-                continue  # Linie goală, se ignoră
+                continue
             parts = line.split()
             clause = [int(x) for x in parts]
             if clause and clause[-1] == 0:
-                clause.pop()  # Elimină terminatorul 0
+                clause.pop()
             formula.append(clause)
     return formula
 
@@ -200,25 +179,25 @@ def read_formulas_from_file(filename):
             parts = line.split()
             clause = [int(x) for x in parts]
             if clause and clause[-1] == 0:
-                clause.pop()  # Elimină terminatorul 0
+                clause.pop()
             current_formula.append(clause)
         if current_formula:
             formulas.append(current_formula)
     return formulas
 
 # --- Funcție de comparare a solutoarelor SAT ---
+
 def solve_sat_with_all_methods(formula):
     """
     Rulează toate cele trei algoritme (Rezoluție, Davis-Putnam și DPLL) pe formulă.
-    Returnează un dicționar cu (rezultat, timp de execuție, memorie consumată în MB, CPU consumat în secunde,
-    memorie detaliată (peak, măsurată cu tracemalloc, în MB)) pentru fiecare algoritm.
+    Returnează un dicționar cu (rezultat, timp de execuție, memorie consumată în MB, CPU consumat în secunde)
+    pentru fiecare algoritm.
     """
     results = {}
     process = psutil.Process(os.getpid())
 
     # Rezoluție
     gc.collect()
-    tracemalloc.start()  # Pornim trasarea detaliată a memoriei
     start_mem = process.memory_info().rss
     start_cpu = process.cpu_times()
     start_time = time.time()
@@ -229,14 +208,10 @@ def solve_sat_with_all_methods(formula):
     end_cpu = process.cpu_times()
     mem_res = (end_mem - start_mem) / (1024 * 1024)  # în MB
     cpu_res = ((end_cpu.user - start_cpu.user) + (end_cpu.system - start_cpu.system))
-    current_d, peak_d = tracemalloc.get_traced_memory()
-    detailed_mem_res = peak_d / (1024 * 1024)  # în MB
-    tracemalloc.stop()
-    results["Rezoluție"] = (result_res, elapsed_res, mem_res, cpu_res, detailed_mem_res)
+    results["Rezoluție"] = (result_res, elapsed_res, mem_res, cpu_res)
 
     # Davis-Putnam
     gc.collect()
-    tracemalloc.start()
     start_mem = process.memory_info().rss
     start_cpu = process.cpu_times()
     start_time = time.time()
@@ -247,14 +222,10 @@ def solve_sat_with_all_methods(formula):
     end_cpu = process.cpu_times()
     mem_dp = (end_mem - start_mem) / (1024 * 1024)
     cpu_dp = ((end_cpu.user - start_cpu.user) + (end_cpu.system - start_cpu.system))
-    current_d, peak_d = tracemalloc.get_traced_memory()
-    detailed_mem_dp = peak_d / (1024 * 1024)
-    tracemalloc.stop()
-    results["Davis-Putnam"] = (result_dp, elapsed_dp, mem_dp, cpu_dp, detailed_mem_dp)
+    results["Davis-Putnam"] = (result_dp, elapsed_dp, mem_dp, cpu_dp)
 
     # DPLL
     gc.collect()
-    tracemalloc.start()
     start_mem = process.memory_info().rss
     start_cpu = process.cpu_times()
     start_time = time.time()
@@ -265,40 +236,37 @@ def solve_sat_with_all_methods(formula):
     end_cpu = process.cpu_times()
     mem_dpll = (end_mem - start_mem) / (1024 * 1024)
     cpu_dpll = ((end_cpu.user - start_cpu.user) + (end_cpu.system - start_cpu.system))
-    current_d, peak_d = tracemalloc.get_traced_memory()
-    detailed_mem_dpll = peak_d / (1024 * 1024)
-    tracemalloc.stop()
-    results["DPLL"] = (result_dpll, elapsed_dpll, mem_dpll, cpu_dpll, detailed_mem_dpll)
+    results["DPLL"] = (result_dpll, elapsed_dpll, mem_dpll, cpu_dpll)
 
     return results
 
-# --- Salvarea rezultatelor în fișier CSV ---
+# --- Salvarea rezultatelor în fișier ---
+
 def save_results_to_file(filename, formulas):
     """
-    Salvează rezultatele într-un fișier CSV.
-    Fiecare rând din CSV va conține: ID-ul formulei, algoritmul utilizat, formula, rezultatul,
-    timpul de execuție (sec), memoria consumată (MB), timpul CPU (sec) și memoria detaliată (peak, MB).
+    Pentru fiecare formulă (fie generată random, fie citită din fișier),
+    evaluează rezultatele folosind metodele Rezoluție, Davis-Putnam și DPLL,
+    apoi scrie rezultatele într-un fișier.
     """
-    with open(filename, mode='w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        # Scriem header-ul CSV:
-        csvwriter.writerow(["Formula_ID", "Algoritm", "Formula", "Rezultat", "Timp (sec)", 
-                            "Memorie (MB)", "CPU (sec)", "DetMem (MB)"])
+    with open(filename, 'w') as f:
         for idx, formula in enumerate(formulas, start=1):
             results = solve_sat_with_all_methods(formula)
-            for algo, (result, runtime, mem_usage, cpu_usage, det_mem) in results.items():
+            f.write(f"Formulă #{idx}: {formula}\n")
+            for algo, (result, runtime, mem_usage, cpu_usage) in results.items():
                 r_str = 'SAT' if result is True else ('NOT SAT' if result is False else 'TIMEOUT')
-                csvwriter.writerow([idx, algo, formula, r_str, f"{runtime:.4f}", 
-                                    f"{mem_usage:.4f}", f"{cpu_usage:.4f}", f"{det_mem:.4f}"])
+                # Afișare memorie în MB și CPU consumption în secunde cu patru zecimale
+                f.write(f"{algo}: {r_str}, Timp: {runtime:.4f} secunde, Memorie: {mem_usage:.6f} MB, CPU: {cpu_usage:.6f} sec\n")
+            f.write("-" * 50 + "\n")
     print(f"Rezultatele au fost salvate în {filename}")
 
 # --- Funcția principală ---
+
 def main():
     """
     Dacă se furnizează un argument în linia de comandă,
     se citește fișierul (se așteaptă ca acesta să conțină formule în formatul specificat).
     Altfel, se generează formule random.
-    Rezultatele se salvează în "sat_results_comparison.csv".
+    Rezultatele se salvează în "sat_results_comparison.txt".
     """
     formulas = []
     if len(sys.argv) > 1:
@@ -315,13 +283,13 @@ def main():
                 print(f"Eroare la citirea fișierului: {ex}")
                 sys.exit(1)
     else:
-        num_formulas = 5000   # Numărul de formule CNF generate.
-        num_clauses = 500    # Numărul de clauze per formulă.
-        num_literals = 300    # Variabilele vor fi în intervalul [1, num_literals].
-        unsat_prob = 0.3     # Probabilitatea de injectare a clauzelor contradictorii.
+        num_formulas = 96
+        num_clauses = 30
+        num_literals = 10
+        unsat_prob = 0.3
         formulas = [generate_random_formula(num_clauses, num_literals, unsat_prob)
                     for _ in range(num_formulas)]
-    save_results_to_file("sat_results_comparison.csv", formulas)
+    save_results_to_file("sat_results_comparison.txt", formulas)
 
 if __name__ == "__main__":
     main()

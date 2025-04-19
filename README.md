@@ -10,6 +10,3 @@
 
 - Code with comparison working.py: Compares the results obtained by each algorithm, providing details about the algorithm used, the result achieved, and the time taken.  
 
-- Draft Files: These files are drafts and do not work.  
-
-🙏Thanks for help (https://github.com/CsizmaAle).
